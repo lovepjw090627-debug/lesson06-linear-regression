@@ -163,9 +163,60 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True, key="fig_temp_regression")
 
 # ──────────────────────────────────────────────
+# 100년에 몇 도 오르는가 (전체 기간 vs 최근 20년)
+# ──────────────────────────────────────────────
+st.header("3. 100년에 몇 도 오르는가")
+
+# 기울기는 '1년에 몇 도'라서, 100을 곱하면 '100년에 몇 도'가 됩니다.
+slope_per_100 = slope * 100
+
+st.markdown(
+    f"""
+    <div style="text-align:center; padding:1rem 0;">
+        <div style="font-size:1.2rem;">전체 기간({start_year}~{end_year}년)으로 구한 변화</div>
+        <div style="font-size:4rem; font-weight:700;">100년에 {slope_per_100:+.2f} ℃</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# 최근 20년(끝 연도 포함 20개 연도)만 따로 골라서 같은 방식으로 직선을 맞춥니다.
+recent_start = end_year - 19
+recent = yearly[yearly["연도"] >= recent_start]
+
+st.subheader("전체 기간 vs 최근 20년 기울기 비교")
+left, right = st.columns(2)
+
+with left:
+    st.metric(
+        f"전체 기간 ({start_year}~{end_year}년, {n_years}개 해)",
+        f"100년에 {slope_per_100:+.2f} ℃",
+    )
+
+with right:
+    if len(recent) >= 3:
+        recent_slope, _ = np.polyfit(recent["연도"].to_numpy(), recent["연평균기온"].to_numpy(), 1)
+        recent_slope_per_100 = recent_slope * 100
+        st.metric(
+            f"최근 20년 ({int(recent['연도'].min())}~{int(recent['연도'].max())}년, {len(recent)}개 해)",
+            f"100년에 {recent_slope_per_100:+.2f} ℃",
+            delta=f"전체 기간보다 {recent_slope_per_100 - slope_per_100:+.2f} ℃",
+            delta_color="off",
+        )
+    else:
+        st.warning("최근 20년 안에 해가 3개 미만이라 기울기를 구할 수 없어요.")
+
+st.caption(
+    "최근 20년처럼 짧은 기간의 기울기는 해마다 들쭉날쭉한 값의 영향을 크게 받아서, "
+    "'100년에 몇 도'로 환산하면 값이 크게 흔들릴 수 있어요."
+)
+
+st.divider()
+
+# ──────────────────────────────────────────────
 # 상관계수와 직선을 만든 데이터 정보
 # ──────────────────────────────────────────────
-st.header("3. 직선을 만든 데이터")
+st.header("4. 직선을 만든 데이터")
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("상관계수 (r)", f"{corr:.3f}")
